@@ -27,7 +27,8 @@ public class AttackOnTitan extends JPanel implements ActionListener, KeyListener
 	private int frameX, frameY, choice, playerYpos, playerXpos, xPosEnemy, yPosEnemy,
 	bulletXpos, bulletYpos, dir, score = 0, lives = 5, seconds;
 	private final int UP = 0, DOWN = 1, RIGHT = 2, LEFT = 3;
-	private Rectangle2D forPlayer, enemyMask, bulletMask;
+	private Rectangle2D forPlayer, bulletMask;
+	private Rectangle2D[] enemyMask;
 	private Ellipse2D enemyBounds;
 	private Image newBack, newControls, morty;
 	private String [] character = {"Rick", "Morty"};
@@ -69,6 +70,8 @@ public class AttackOnTitan extends JPanel implements ActionListener, KeyListener
 		
 		// initializes things from the enemy class
 		enemy = new Enemy();
+		
+		// Creates an array of three enemies
 		alien = new Enemy[3];
 
 		// initializes the random class
@@ -126,17 +129,18 @@ public class AttackOnTitan extends JPanel implements ActionListener, KeyListener
 		// changes JFrame sizes to the different images that may be open
 		if (e.getSource() == game)
 		{
-			if (menu == true)
+			if (menu)
 			{
 				frame.setSize(900, 600);
 
 			}
 		
-			if (controls == true) {
+			if (controls) 
+			{
 				frame.setSize(592, 720);
 			}
 
-			if (play == true)			
+			if (play)			
 			{
 				frame.setSize(800, 750);
 
@@ -234,6 +238,7 @@ public class AttackOnTitan extends JPanel implements ActionListener, KeyListener
 		if (e.getSource() == shootTimer)
 		{
 			bulletMask = new Rectangle2D.Double(bulletXpos, bulletYpos, bullets.getIconWidth(), bullets.getIconHeight());
+			
 			if (dir == UP && isFired == true)
 			{
 				bullets = new ImageIcon ("bulletsUp.png");
@@ -264,7 +269,7 @@ public class AttackOnTitan extends JPanel implements ActionListener, KeyListener
 				shootTimer.stop();
 			}
 			
-			System.out.print("SHOOTING");
+			//System.out.print("SHOOTING");
 		}
 
 		// Enemy mask and bullet intersection
@@ -273,42 +278,47 @@ public class AttackOnTitan extends JPanel implements ActionListener, KeyListener
 			for (int i = 0; i < alien.length; i++)
 			{
 				alien[i].move();
-				enemyMask = new Rectangle2D.Double(alien[i].getX(), alien[i].getY(),
-						enemy.getNode().getIconWidth(), enemy.getNode().getIconHeight());
 				
+				Rectangle2D alienMask = new Rectangle2D.Double(alien[i].getX(), alien[i].getY(),
+						alien[i].getNode().getIconWidth(), alien[i].getNode().getIconHeight());
+				
+				if (bulletMask.intersects(alienMask))
+				{
+					alien[i].setLocation(rand.nextInt(700) , -200 );
+					
+					score++;
+					isFired = false;
+					shootTimer.stop();
+				}
+				
+				if (alien[i].getY() > frame.getHeight() || forPlayer.intersects(alienMask))
+				{
+//					playerXpos = frame.getWidth()/2;
+//					playerYpos = frame.getHeight()- player.getImage().getIconHeight();
+					
+					alien[i].setLocation(rand.nextInt(700) , -200 );
+					lives -= 1;
+				}
 			}
 			
 			
 			//enemyBounds = new Ellipse2D.Double(xPosEnemy-1000 , yPosEnemy-1000,
 			//		enemy.getNode().getIconWidth()+2000, enemy.getNode().getIconHeight()+2000);
-
-			if (bulletMask.intersects(enemyMask))
-			{
-				for (int i = 0; i < alien.length; i++)
-				{
-					alien[i].setLocation(rand.nextInt(700) , -200 );
-				}
-				score++;
-				isFired = false;
-				shootTimer.stop();
-				
-			}
-
-			// loss of hit point if enemy gets past player
-			if (yPosEnemy > frame.getHeight() || forPlayer.intersects(enemyMask))
-			{
-				playerXpos = frame.getWidth()/2;
-				playerYpos = frame.getHeight()- player.getImage().getIconHeight();
-				lives--;
-			}
+	
+		
 
 			// goes back to menu if user loses
-			if (lives == 0)
+			if (lives <= 0)
 			{
-				frame.setSize(900, 600);
-				menu = true;
+				enTimer.stop();
+				playerTimer.stop();
+				ultTimer.stop();
 				JOptionPane.showMessageDialog(null, "Game Over!","Attack on Titan", JOptionPane.OK_OPTION, mortyIconNew);
+				frame.setSize(900, 600);
+				play = false;
+				menu = true;
 			}
+			
 				
 		}
 		
@@ -321,7 +331,7 @@ public class AttackOnTitan extends JPanel implements ActionListener, KeyListener
 		Graphics2D g2 = (Graphics2D) g;
 
 		// draws menu page
-		if (menu == true) { 
+		if (menu) { 
 			g2.drawImage(newBack, 0, 0, this);
 			
 			g2.setFont(f.deriveFont(50f));
@@ -334,23 +344,23 @@ public class AttackOnTitan extends JPanel implements ActionListener, KeyListener
 		}
 
 		// draws images when the game is being played
-		if (play == true)
+		else if (play)
 		{
 			g2.drawImage(sandBack.getImage(), 0, 0, this);
 			g2.drawImage(player.getImage().getImage(), playerXpos, playerYpos, this);
 
 			for (int i = 0; i < alien.length; i++)
 			{
-				if (useUlt == true)
+				if (useUlt)
 				{
 					alien[i].setLocation(0 - player.getNode().getIconWidth(), 0 - player.getNode().getIconHeight());
 				}
 				
 				g2.drawImage(alien[i].getNode().getImage(), alien[i].getX(),
 				alien[i].getY(), this);
-				System.out.println(alien[i].getX() + " " + alien[i].getY());
+				//System.out.println(alien[i].getX() + " " + alien[i].getY());
 			}
-			if (isFired == true)
+			if (isFired)
 			{
 				g2.drawImage(bullets.getImage(), bulletXpos, bulletYpos, this);
 			}
@@ -362,12 +372,12 @@ public class AttackOnTitan extends JPanel implements ActionListener, KeyListener
 			g2.drawString("" + lives, 60, 700);
 		}
 
-		if (controls == true)
+		else if (controls)
 		{
 			g2.drawImage(newControls, 0, 0, this);
 
 		}
-		if (exit == true) {
+		else if (exit) {
 			System.exit(0);
 		}
 
@@ -386,8 +396,8 @@ public class AttackOnTitan extends JPanel implements ActionListener, KeyListener
 					
 			JOptionPane.showMessageDialog(null, "We need your help! Aliens from outer space have been\nin control of Earth for over 20 years. It is time to\nmake one final push for a miracle. It is up to you to\nprovide time for reinforcements from other countries to arrive.\nDon't let the enemies get past you they will take a hitpoint ", "ATTACK ON TITAN", JOptionPane.OK_OPTION, rickIconnew);
 			enTimer.start();
+			
 			System.out.println("play");
-
 			play = true;
 
 		}
@@ -444,6 +454,19 @@ public class AttackOnTitan extends JPanel implements ActionListener, KeyListener
 
 	@Override
 	public void keyPressed(KeyEvent e) {
+		
+		// 
+		if (e.getKeyCode() == KeyEvent.VK_ESCAPE)
+		{
+			enTimer.stop();
+			playerTimer.stop();
+			shootTimer.stop();
+			ultTimer.stop();
+			play = false;
+			controls = false;
+			menu = true;
+		}
+		
 		// User clicks the left arrow key
 		if (e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyCode() == KeyEvent.VK_A)
 		{
@@ -564,6 +587,7 @@ public class AttackOnTitan extends JPanel implements ActionListener, KeyListener
 		seconds = 10;
 		useUlt = false;
 		startUlt = false;
+		
 
 	}
 
